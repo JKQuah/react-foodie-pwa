@@ -13,6 +13,7 @@ import { MatchConfirm } from "./pages/MatchConfirm";
 import { Settings } from "./pages/Settings";
 import { ChatList } from "./pages/ChatList";
 import { ChatDetail } from "./pages/ChatDetail";
+import { CreatePost } from "./pages/CreatePost";
 
 export const router = createBrowserRouter([
   {
@@ -32,6 +33,7 @@ export const router = createBrowserRouter([
       { path: "chats", Component: ChatList },
       { path: "chats/:id", Component: ChatDetail },
       { path: "settings", Component: Settings },
+      { path: "post/create", Component: CreatePost },
     ],
   },
 ]);
