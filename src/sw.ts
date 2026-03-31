@@ -1,13 +1,13 @@
 /// <reference lib="webworker" />
+
 import { cleanupOutdatedCaches, precacheAndRoute } from 'workbox-precaching'
 
-declare const self: ServiceWorkerGlobalScope
+declare const self: ServiceWorkerGlobalScope & {
+  __WB_MANIFEST: Array<{ url: string; revision: string | null }>
+}
 
 precacheAndRoute(self.__WB_MANIFEST)
 cleanupOutdatedCaches()
-
-// Navigation fallback
-self.addEventListener('fetch', () => {})
 
 // Push notification handler
 self.addEventListener('push', (event: PushEvent) => {
@@ -26,12 +26,11 @@ self.addEventListener('push', (event: PushEvent) => {
         data: { url: data.url ?? '/' },
       })
 
-      // Increment badge count
+      // Notify open clients to increment badge count
       const allClients = await self.clients.matchAll({ includeUncontrolled: true })
-      // Notify open clients to update their badge count
       allClients.forEach(client => client.postMessage({ type: 'BADGE_INCREMENT' }))
 
-      // Set the app icon badge (supported on Android Chrome, Samsung Internet)
+      // Set the app icon badge
       if ('setAppBadge' in self.navigator) {
         const notifications = await self.registration.getNotifications()
         await (self.navigator as Navigator & { setAppBadge: (n: number) => Promise<void> })
@@ -42,7 +41,7 @@ self.addEventListener('push', (event: PushEvent) => {
 })
 
 // Notification click: open/focus the app
-self.addEventListener('notificationclick', (event: NotificationClickEvent) => {
+self.addEventListener('notificationclick', (event: NotificationEvent) => {
   event.notification.close()
   const targetUrl = (event.notification.data as { url?: string })?.url ?? '/'
 
