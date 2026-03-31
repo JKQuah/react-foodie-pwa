@@ -31,6 +31,7 @@ type FeedContextType = {
   commentLists: Record<string, Comment[]>
   addComment: (postId: string, text: string) => void
   createPost: (data: { dish: string; location: string; caption: string; images: string[] }) => void
+  refreshPosts: () => Promise<void>
 }
 
 const SEED_COMMENTS: Record<string, Comment[]> = {
@@ -95,6 +96,12 @@ export function FeedProvider({ children }: { children: ReactNode }) {
     }))
   }, [])
 
+  const refreshPosts = useCallback(async () => {
+    // Simulate a network refresh with a short delay, then shuffle posts
+    await new Promise(res => setTimeout(res, 800))
+    setPosts(prev => [...prev].sort(() => Math.random() - 0.5))
+  }, [])
+
   const createPost = useCallback((data: { dish: string; location: string; caption: string; images: string[] }) => {
     const id = `p_${Date.now()}`
     const newPost: FeedPost = {
@@ -115,7 +122,7 @@ export function FeedProvider({ children }: { children: ReactNode }) {
   }, [])
 
   return (
-    <FeedContext.Provider value={{ posts, likedIds, likeCounts, toggleLike, commentLists, addComment, createPost }}>
+    <FeedContext.Provider value={{ posts, likedIds, likeCounts, toggleLike, commentLists, addComment, createPost, refreshPosts }}>
       {children}
     </FeedContext.Provider>
   )

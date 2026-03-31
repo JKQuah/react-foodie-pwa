@@ -1,12 +1,16 @@
 import { useState, useRef } from 'react'
-import { Search, MapPin, MoreHorizontal, Heart, MessageCircle, Send, Plus, PenLine, X } from 'lucide-react'
+import { Search, MapPin, MoreHorizontal, Heart, MessageCircle, Send, Plus, PenLine, X, RefreshCw, Bell, BellOff } from 'lucide-react'
 import { USERS } from '../data'
 import { useFeed, CURRENT_USER } from '../context/FeedContext'
 import { Link, useNavigate } from 'react-router'
+import { usePullToRefresh } from '../../hooks/usePullToRefresh'
+import { usePushNotifications } from '../../hooks/usePushNotifications'
 
 export function Feed() {
   const navigate = useNavigate()
-  const { posts, likedIds, likeCounts, toggleLike, commentLists, addComment } = useFeed()
+  const { posts, likedIds, likeCounts, toggleLike, commentLists, addComment, refreshPosts } = useFeed()
+  const { containerRef, pullY, refreshing, threshold } = usePullToRefresh(refreshPosts)
+  const { state: pushState, subscribe, unsubscribe } = usePushNotifications()
   const [openComments, setOpenComments] = useState<Set<string>>(new Set())
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({})
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({})
@@ -31,8 +35,21 @@ export function Feed() {
     setCommentInputs(prev => ({ ...prev, [postId]: '' }))
   }
 
+  const pullProgress = Math.min(pullY / threshold, 1)
+
   return (
-    <div className="pb-28 pt-12 px-4 bg-gray-50/50 min-h-full">
+    <div ref={containerRef} className="pb-28 pt-12 px-4 bg-gray-50/50 min-h-full">
+      {/* Pull-to-refresh indicator */}
+      <div
+        className="absolute left-0 right-0 flex justify-center items-center pointer-events-none z-10 overflow-hidden transition-all"
+        style={{ top: pullY > 0 || refreshing ? `${Math.max(pullY - 28, 4)}px` : '-32px', opacity: pullY > 0 || refreshing ? 1 : 0 }}
+      >
+        <div className={`w-8 h-8 rounded-full bg-white shadow-md border border-gray-100 flex items-center justify-center transition-transform`}
+          style={{ transform: `rotate(${pullProgress * 360}deg)` }}
+        >
+          <RefreshCw className={`w-4 h-4 transition-colors ${refreshing ? 'text-[#DE6543] animate-spin' : pullProgress >= 1 ? 'text-[#DE6543]' : 'text-gray-400'}`} />
+        </div>
+      </div>
       {/* Header */}
       <div className="flex justify-between items-end mb-6">
         <div>
@@ -42,6 +59,25 @@ export function Feed() {
           <h1 className="text-3xl font-bold tracking-tight text-gray-900 mt-1">Discover</h1>
         </div>
         <div className="flex items-center gap-2">
+          {pushState !== 'unsupported' && (
+            <button
+              onClick={pushState === 'subscribed' ? unsubscribe : subscribe}
+              title={pushState === 'subscribed' ? 'Disable notifications' : 'Enable notifications'}
+              className={`w-10 h-10 rounded-full flex items-center justify-center active:scale-95 transition-transform shadow-sm border ${
+                pushState === 'subscribed'
+                  ? 'bg-[#DE6543] border-transparent'
+                  : pushState === 'denied'
+                  ? 'bg-gray-100 border-gray-200 cursor-not-allowed'
+                  : 'bg-white border-gray-100'
+              }`}
+              disabled={pushState === 'denied'}
+            >
+              {pushState === 'subscribed'
+                ? <Bell className="w-4.5 h-4.5 text-white" />
+                : <BellOff className="w-4.5 h-4.5 text-gray-500" />
+              }
+            </button>
+          )}
           <button
             onClick={() => navigate('/post/create')}
             className="w-10 h-10 bg-[#DE6543] shadow-md shadow-orange-500/25 rounded-full flex items-center justify-center active:scale-95 transition-transform"
